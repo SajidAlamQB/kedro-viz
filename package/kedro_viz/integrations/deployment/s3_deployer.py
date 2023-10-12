@@ -14,9 +14,8 @@ from semver import VersionInfo
 from kedro_viz import __version__
 from kedro_viz.api.rest.responses import save_api_responses_to_fs
 from kedro_viz.integrations.kedro import telemetry as kedro_telemetry
+from kedro_viz.constants import _HTML_DIR, _METADATA_PATH
 
-_HTML_DIR = Path(__file__).parent.parent.parent.absolute() / "html"
-_METADATA_PATH = "api/deploy-viz-metadata"
 _S3_PROTOCOL = "s3"
 
 logger = logging.getLogger(__name__)
