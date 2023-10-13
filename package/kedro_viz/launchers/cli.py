@@ -210,6 +210,7 @@ def viz(host, port, browser, load_file, save_file, pipeline, env, autoreload, pa
 def viz_build(api_dir, host, port, pipeline, env, params):
     """Build a static site for Kedro pipelines using Kedro viz."""
     from kedro_viz.server import run_server
+    api_dir = (Path.cwd()/api_dir).absolute()
 
     installed_version = VersionInfo.parse(__version__)
     latest_version = get_latest_version()
