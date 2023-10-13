@@ -282,6 +282,7 @@ def viz_build(api_dir, host, port, pipeline, env, params):
                 raise exc
 
             try:
+                print("DEBUG**", _HTML_DIR)
                 _fs.put(f"{str(_HTML_DIR)}/*", destination_dir, recursive=True)
                 _ingest_heap_analytics(destination_dir)
             except Exception as exc:  # pragma: no cover
