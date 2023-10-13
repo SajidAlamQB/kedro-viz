@@ -11,3 +11,6 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 4141
 _HTML_DIR = Path(__file__).parent.absolute() / "html"
 _METADATA_PATH = "api/deploy-viz-metadata"
+
+
+ pip install "git+https://github.com/kedro-org/kedro-viz.git@noklam/github-page-action&subdirectory=package"
