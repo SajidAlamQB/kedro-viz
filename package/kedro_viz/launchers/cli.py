@@ -284,6 +284,9 @@ def viz_build(api_dir, host, port, pipeline, env, params):
 
             try:
                 print("DEBUG**", _HTML_DIR)
+                print(list(Path(_HTML_DIR).iterdir()))
+                print("DEBUG**", destination_dir)
+                print(list(Path(destination_dir).iterdir()))
                 _fs.put(f"{str(_HTML_DIR)}/*", destination_dir, recursive=True)
                 _ingest_heap_analytics(destination_dir)
             except Exception as exc:  # pragma: no cover
