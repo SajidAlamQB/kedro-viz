@@ -70,17 +70,12 @@ class DataAccessManager:
         self.runs.set_db_session(db_session_class)
 
     def add_catalog(self, catalog: DataCatalog):
-        """Add a catalog to the CatalogRepository and relevant tracking datasets to
-        TrackingDatasetRepository.
+        """Add a catalog to the CatalogRepository
 
         Args:
             catalog: The DataCatalog instance to add.
         """
         self.catalog.set_catalog(catalog)
-
-        for dataset_name, dataset in self.catalog.as_dict().items():
-            if self.tracking_datasets.is_tracking_dataset(dataset):
-                self.tracking_datasets.add_tracking_dataset(dataset_name, dataset)
 
     def add_pipelines(self, pipelines: Dict[str, KedroPipeline]):
         """Extract objects from all registered pipelines from a Kedro project
@@ -252,6 +247,8 @@ class DataAccessManager:
     ) -> Union[DataNode, TranscodedDataNode, ParametersNode]:
         """Add a Kedro dataset as a DataNode, TranscodedDataNode or ParametersNode
         to the NodesRepository for a given registered pipeline ID.
+          Also if the Kedro dataset is a tracking dataset, add it to 
+          the TrackingDatasetsRepository.
 
         Args:
             registered_pipeline_id: The registered pipeline ID to which the dataset belongs.
@@ -279,6 +276,10 @@ class DataAccessManager:
                 stats=self.get_stats_for_data_node(_strip_transcoding(dataset_name)),
                 is_free_input=is_free_input,
             )
+
+        if self.tracking_datasets.is_tracking_dataset(obj):
+            self.tracking_datasets.add_tracking_dataset(dataset_name, obj)
+
         graph_node = self.nodes.add_node(graph_node)
         graph_node.add_pipeline(registered_pipeline_id)
         return graph_node
