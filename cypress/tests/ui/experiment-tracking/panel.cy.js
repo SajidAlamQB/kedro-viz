@@ -79,11 +79,14 @@ describe('Experiment Tracking Primary Toolbar', () => {
           ':nth-child(3) > .pipeline-settings-modal__header > .pipeline-settings-modal__name'
         ).should('have.text', 'Notes');
 
-        cy.get(':nth-child(2) > .input').clear();
-        cy.get(':nth-child(2) > .input').type(modifiedRunTitleText);
-
-        cy.get(':nth-child(3) > .input').clear();
-        cy.get(':nth-child(3) > .input').type(modifiedRunNotesText);
+        cy.get(':nth-child(2) > .input').type(
+          `{selectall}{backspace}${modifiedRunTitleText}`,
+          { force: true }
+        );
+        cy.get(':nth-child(3) > .input').type(
+          `{selectall}{backspace}${modifiedRunNotesText}`,
+          { force: true }
+        );
 
         cy.get('@applyChanges').click();
       });

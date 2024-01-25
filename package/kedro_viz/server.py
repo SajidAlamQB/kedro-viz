@@ -4,7 +4,6 @@ import multiprocessing
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import fsspec
 import uvicorn
 from kedro.framework.session.store import BaseSessionStore
 from kedro.io import DataCatalog
@@ -111,7 +110,7 @@ def run_server(
         load_and_populate_data(path, env, ignore_plugins, extra_params, pipeline_name)
 
         if save_file:
-            save_api_responses_to_fs(save_file, fsspec.filesystem("file"))
+            save_api_responses_to_fs(save_file)
 
         app = apps.create_api_app_from_project(path, autoreload)
     else:

@@ -22,8 +22,10 @@ describe('Experiment Tracking', () => {
       // Assert after action
       cy.get('.modal--visible').then(($dialog) => {
         cy.wrap($dialog).within(() => {
-          cy.get(':nth-child(2) > .input').clear();
-          cy.get(':nth-child(2) > .input').type(modifiedRunTitleText);
+          cy.get(':nth-child(2) > .input').type(
+            `{selectall}{backspace}${modifiedRunTitleText}`,
+            { force: true }
+          );
           cy.get('@applyChanges').click();
         });
       });
@@ -53,8 +55,10 @@ describe('Experiment Tracking', () => {
       // Assert after action
       cy.get('.modal--visible').then(($dialog) => {
         cy.wrap($dialog).within(() => {
-          cy.get(':nth-child(3) > .input').clear();
-          cy.get(':nth-child(3) > .input').type(modifiedRunNotesText);
+          cy.get(':nth-child(3) > .input').type(
+            `{selectall}{backspace}${modifiedRunNotesText}`,
+            { force: true }
+          );
           cy.get('@applyChanges').click();
         });
       });

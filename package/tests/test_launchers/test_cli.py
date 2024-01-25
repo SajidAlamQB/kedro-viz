@@ -1,4 +1,4 @@
-from unittest.mock import Mock, call
+from unittest.mock import call
 
 import pytest
 import requests
@@ -7,7 +7,6 @@ from packaging.version import parse
 from watchgod import RegExpWatcher, run_process
 
 from kedro_viz import __version__
-from kedro_viz.constants import SHAREABLEVIZ_SUPPORTED_PLATFORMS, VIZ_DEPLOY_TIME_LIMIT
 from kedro_viz.launchers import cli
 from kedro_viz.server import run_server
 
@@ -20,57 +19,6 @@ def patched_check_viz_up(mocker):
 @pytest.fixture
 def patched_start_browser(mocker):
     mocker.patch("kedro_viz.launchers.cli._start_browser")
-
-
-@pytest.fixture
-def mock_viz_deploy_process(mocker):
-    return mocker.patch("kedro_viz.launchers.cli.multiprocessing.Process")
-
-
-@pytest.fixture
-def mock_process_completed(mocker):
-    return mocker.patch(
-        "kedro_viz.launchers.cli.multiprocessing.Value", return_value=Mock()
-    )
-
-
-@pytest.fixture
-def mock_exception_queue(mocker):
-    return mocker.patch(
-        "kedro_viz.launchers.cli.multiprocessing.Queue", return_value=Mock()
-    )
-
-
-@pytest.fixture
-def mock_viz_load_and_deploy(mocker):
-    return mocker.patch("kedro_viz.launchers.cli.load_and_deploy_viz")
-
-
-@pytest.fixture
-def mock_viz_deploy_progress_timer(mocker):
-    return mocker.patch("kedro_viz.launchers.cli.viz_deploy_progress_timer")
-
-
-@pytest.fixture
-def mock_DeployerFactory(mocker):
-    return mocker.patch("kedro_viz.launchers.cli.DeployerFactory")
-
-
-@pytest.fixture
-def mock_load_and_populate_data(mocker):
-    return mocker.patch("kedro_viz.launchers.cli.load_and_populate_data")
-
-
-@pytest.fixture
-def mock_click_echo(mocker):
-    return mocker.patch("click.echo")
-
-
-@pytest.fixture
-def mock_project_path(mocker):
-    mock_path = "/tmp/project_path"
-    mocker.patch("pathlib.Path.cwd", return_value=mock_path)
-    return mock_path
 
 
 @pytest.mark.parametrize(
@@ -176,15 +124,14 @@ def test_kedro_viz_command_run_server(
     assert run_server_args["port"] in cli._VIZ_PROCESSES
 
 
-def test_kedro_viz_command_should_log_outdated_version(
-    mocker, mock_http_response, mock_click_echo
-):
+def test_kedro_viz_command_should_log_outdated_version(mocker, mock_http_response):
     installed_version = parse(__version__)
     mock_version = f"{installed_version.major + 1}.0.0"
     requests_get = mocker.patch("requests.get")
     requests_get.return_value = mock_http_response(
         data={"info": {"version": mock_version}}
     )
+    mock_click_echo = mocker.patch("click.echo")
 
     mocker.patch("kedro_viz.server.run_server")
     runner = CliRunner()
@@ -205,13 +152,12 @@ def test_kedro_viz_command_should_log_outdated_version(
     mock_click_echo.assert_has_calls(mock_click_echo_calls)
 
 
-def test_kedro_viz_command_should_not_log_latest_version(
-    mocker, mock_http_response, mock_click_echo
-):
+def test_kedro_viz_command_should_not_log_latest_version(mocker, mock_http_response):
     requests_get = mocker.patch("requests.get")
     requests_get.return_value = mock_http_response(
         data={"info": {"version": str(parse(__version__))}}
     )
+    mock_click_echo = mocker.patch("click.echo")
 
     mocker.patch("kedro_viz.server.run_server")
     runner = CliRunner()
@@ -223,11 +169,10 @@ def test_kedro_viz_command_should_not_log_latest_version(
     mock_click_echo.assert_has_calls(mock_click_echo_calls)
 
 
-def test_kedro_viz_command_should_not_log_if_pypi_is_down(
-    mocker, mock_http_response, mock_click_echo
-):
+def test_kedro_viz_command_should_not_log_if_pypi_is_down(mocker, mock_http_response):
     requests_get = mocker.patch("requests.get")
     requests_get.side_effect = requests.exceptions.RequestException("PyPI is down")
+    mock_click_echo = mocker.patch("click.echo")
 
     mocker.patch("kedro_viz.server.run_server")
     runner = CliRunner()
@@ -240,10 +185,11 @@ def test_kedro_viz_command_should_not_log_if_pypi_is_down(
 
 
 def test_kedro_viz_command_with_autoreload(
-    mocker, patched_check_viz_up, patched_start_browser, mock_project_path
+    mocker, patched_check_viz_up, patched_start_browser
 ):
     process_init = mocker.patch("multiprocessing.Process")
-
+    mock_project_path = "/tmp/project_path"
+    mocker.patch("pathlib.Path.cwd", return_value=mock_project_path)
     # Reduce the timeout argument from 60 to 1 to make test run faster.
     mocker.patch("kedro_viz.launchers.cli._wait_for.__defaults__", (True, 1, True, 1))
     runner = CliRunner()
@@ -275,7 +221,8 @@ def test_kedro_viz_command_with_autoreload(
     assert run_process_kwargs["kwargs"]["port"] in cli._VIZ_PROCESSES
 
 
-def test_viz_command_group(mocker, mock_click_echo):
+def test_viz_command_group(mocker):
+    mock_click_echo = mocker.patch("click.echo")
     runner = CliRunner()
 
     with runner.isolated_filesystem():
@@ -288,8 +235,8 @@ def test_viz_command_group(mocker, mock_click_echo):
             "Visualise a Kedro pipeline using Kedro viz.\n\n"
             "Options:\n  --help  Show this message and exit.\n\n"
             "Commands:\n  build   Create build directory of local Kedro Viz "
-            "instance with Kedro...\n  "
-            "deploy  Deploy and host Kedro Viz on provided platform\n  "
+            "instance with static data\n  "
+            "deploy  Deploy and host Kedro Viz on AWS S3\n  "
             "run     Launch local Kedro Viz instance\x1b[0m"
         ),
     ]
@@ -304,78 +251,65 @@ def test_viz_command_group(mocker, mock_click_echo):
             [
                 "viz",
                 "deploy",
-                "--platform",
-                "azure",
-                "--endpoint",
-                "https://example-bucket.web.core.windows.net",
+                "--region",
+                "us-east-2",
                 "--bucket-name",
                 "example-bucket",
             ],
-            {
-                "platform": "azure",
-                "endpoint": "https://example-bucket.web.core.windows.net",
-                "bucket_name": "example-bucket",
-            },
+            {"region": "us-east-2", "bucket_name": "example-bucket"},
+        ),
+        (
+            ["viz", "deploy", "--region", "us-east-1", "--bucket-name", "shareable"],
+            {"region": "us-east-1", "bucket_name": "shareable"},
         ),
     ],
 )
-def test_viz_deploy_valid_endpoint_and_bucket(command_options, deployer_args, mocker):
+def test_viz_deploy_valid_region_and_bucket(command_options, deployer_args, mocker):
     runner = CliRunner()
     mocker.patch("fsspec.filesystem")
-    platform_deployer_mock = mocker.patch("kedro_viz.launchers.cli.platform_deployer")
+    load_and_populate_data_mock = mocker.patch(
+        "kedro_viz.launchers.cli.load_and_populate_data"
+    )
+
+    expected_url = f"http://{deployer_args.get('bucket_name')} \
+    .s3-website.{deployer_args.get('region')}.amazonaws.com"
+
+    s3_deployer_mock_instance = mocker.patch(
+        "kedro_viz.launchers.cli.DeployerFactory.create_deployer"
+    ).return_value
+    s3_deployer_mock_instance.deploy_and_get_url.return_value = expected_url
+
+    mock_click_echo = mocker.patch("click.echo")
 
     with runner.isolated_filesystem():
         result = runner.invoke(cli.viz_cli, command_options)
 
     assert result.exit_code == 0
 
-    platform_deployer_mock.assert_called_once_with(
-        deployer_args.get("platform"),
-        deployer_args.get("endpoint"),
-        deployer_args.get("bucket_name"),
-    )
+    load_and_populate_data_mock.assert_called_once()
 
-
-def test_viz_deploy_invalid_platform(mocker, mock_click_echo):
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        result = runner.invoke(
-            cli.viz_cli,
-            [
-                "viz",
-                "deploy",
-                "--platform",
-                "random",
-                "--endpoint",
-                "",
-                "--bucket-name",
-                "example-bucket",
-            ],
-        )
-
-    assert result.exit_code == 0
     mock_click_echo_calls = [
         call(
-            "\x1b[31mERROR: Invalid platform specified. Kedro-Viz supports \n"
-            f"the following platforms - {*SHAREABLEVIZ_SUPPORTED_PLATFORMS,}\x1b[0m"
+            "\x1b[32m\u2728 Success! Kedro Viz has been deployed on AWS S3. "
+            "It can be accessed at :\n"
+            f"{expected_url}\x1b[0m"
         )
     ]
 
     mock_click_echo.assert_has_calls(mock_click_echo_calls)
 
 
-def test_viz_deploy_invalid_endpoint(mocker, mock_click_echo):
+def test_viz_deploy_invalid_region(mocker):
     runner = CliRunner()
+    mock_click_echo = mocker.patch("click.echo")
     with runner.isolated_filesystem():
         result = runner.invoke(
             cli.viz_cli,
             [
                 "viz",
                 "deploy",
-                "--platform",
-                "aws",
-                "--endpoint",
-                "",
+                "--region",
+                "invalid-region",
                 "--bucket-name",
                 "example-bucket",
             ],
@@ -384,140 +318,35 @@ def test_viz_deploy_invalid_endpoint(mocker, mock_click_echo):
     assert result.exit_code == 0
     mock_click_echo_calls = [
         call(
-            "\x1b[31mERROR: Invalid endpoint specified. If you are looking for platform \n"
-            "agnostic shareable viz solution, please use `kedro viz build` command\x1b[0m"
+            "\x1b[31mERROR: Invalid AWS region. Please enter a valid AWS Region (eg., us-east-2).\n"
+            "Please find the complete list of available regions at :\n"
+            "https://docs.aws.amazon.com/AmazonRDS/latest"
+            "/UserGuide/Concepts.RegionsAndAvailabilityZones.html"
+            "#Concepts.RegionsAndAvailabilityZones.Regions\x1b[0m"
         )
     ]
-
     mock_click_echo.assert_has_calls(mock_click_echo_calls)
 
 
 def test_successful_build_with_existing_static_files(mocker):
-    platform_deployer_mock = mocker.patch("kedro_viz.launchers.cli.platform_deployer")
+    mocker.patch("kedro_viz.launchers.cli.load_and_populate_data")
+    mocker.patch("kedro_viz.launchers.cli.DeployerFactory.create_deployer")
 
     runner = CliRunner()
     result = runner.invoke(cli.build)
 
     assert result.exit_code == 0
-    platform_deployer_mock.assert_called_once_with("local")
+    assert "successfully added" in result.output
 
 
-@pytest.mark.parametrize(
-    "platform, endpoint, bucket_name, process_completed_value",
-    [
-        ("azure", "https://example-bucket.web.core.windows.net", "example-bucket", 1),
-        (
-            "aws",
-            "http://example-bucket.s3-website.us-east-2.amazonaws.com/",
-            "example-bucket",
-            1,
-        ),
-        (
-            "aws",
-            "http://example-bucket.s3-website.us-east-2.amazonaws.com/",
-            "example-bucket",
-            0,
-        ),
-        ("local", None, None, 1),
-        ("local", None, None, 0),
-    ],
-)
-def test_platform_deployer(
-    platform,
-    endpoint,
-    bucket_name,
-    process_completed_value,
-    mock_viz_deploy_process,
-    mock_process_completed,
-    mock_exception_queue,
-    mock_viz_load_and_deploy,
-    mock_viz_deploy_progress_timer,
-    mock_click_echo,
-):
-    mock_process_completed.return_value.value = process_completed_value
-    cli.platform_deployer(platform, endpoint, bucket_name)
-
-    # Assert the mocks were called as expected
-    mock_viz_deploy_process.assert_called_once_with(
-        target=mock_viz_load_and_deploy,
-        args=(
-            platform,
-            endpoint,
-            bucket_name,
-            mock_process_completed.return_value,
-            mock_exception_queue.return_value,
-        ),
-    )
-    mock_viz_deploy_process.return_value.start.assert_called_once()
-    mock_viz_deploy_progress_timer.assert_called_once_with(
-        mock_process_completed.return_value, VIZ_DEPLOY_TIME_LIMIT
-    )
-    mock_viz_deploy_process.return_value.terminate.assert_called_once()
-
-    if process_completed_value:
-        if platform != "local":
-            msg = (
-                "\x1b[32m\u2728 Success! Kedro Viz has been deployed on "
-                f"{platform.upper()}. "
-                "It can be accessed at :\n"
-                f"{endpoint}\x1b[0m"
-            )
-        else:
-            msg = (
-                "\x1b[32m✨ Success! Kedro-Viz build files have been "
-                "successfully added to the `build` directory.\x1b[0m"
-            )
-    else:
-        msg = (
-            "\x1b[31mTIMEOUT ERROR: Failed to deploy and host Kedro-Viz "
-            f"as the deployment process took more than {VIZ_DEPLOY_TIME_LIMIT} seconds. "
-            "Please try again later.\x1b[0m"
-        )
-
-    mock_click_echo_calls = [call(msg)]
-    mock_click_echo.assert_has_calls(mock_click_echo_calls)
-
-
-@pytest.mark.parametrize(
-    "platform, endpoint, bucket_name",
-    [
-        ("azure", "https://example-bucket.web.core.windows.net", "example-bucket"),
-        (
-            "aws",
-            "http://example-bucket.s3-website.us-east-2.amazonaws.com/",
-            "example-bucket",
-        ),
-        (
-            "aws",
-            "http://example-bucket.s3-website.us-east-2.amazonaws.com/",
-            "example-bucket",
-        ),
-        ("local", None, None),
-        ("local", None, None),
-    ],
-)
-def test_load_and_deploy_viz_success(
-    platform,
-    endpoint,
-    bucket_name,
-    mock_DeployerFactory,
-    mock_load_and_populate_data,
-    mock_process_completed,
-    mock_exception_queue,
-    mock_click_echo,
-    mock_project_path,
-):
-    deployer_mock = mock_DeployerFactory.create_deployer.return_value
-
-    cli.load_and_deploy_viz(
-        platform, endpoint, bucket_name, mock_process_completed, mock_exception_queue
+def test_build_with_exception(mocker):
+    mocker.patch("kedro_viz.launchers.cli.load_and_populate_data")
+    mocker.patch(
+        "kedro_viz.launchers.cli.DeployerFactory.create_deployer",
+        side_effect=Exception("ERROR: Failed to build Kedro-Viz"),
     )
 
-    mock_load_and_populate_data.assert_called_once_with(
-        mock_project_path, ignore_plugins=True
-    )
-    mock_DeployerFactory.create_deployer.assert_called_once_with(
-        platform, endpoint, bucket_name
-    )
-    deployer_mock.deploy.assert_called_once()
-    mock_click_echo.echo.assert_not_called()
+    runner = CliRunner()
+    result = runner.invoke(cli.build)
+
+    assert "ERROR: Failed to build Kedro-Viz" in result.output
