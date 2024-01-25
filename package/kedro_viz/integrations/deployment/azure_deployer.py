@@ -26,20 +26,23 @@ class AzureDeployer(BaseDeployer):
     Attributes:
         _endpoint (str): Azure endpoint of the hosted site.
         _bucket_name (str): Name of the AzureBlobStorage account.
+        _local_storage (Dict): Dictionary containing local storage
         _path (str): Container path for the AzureBlobStorage account.
         _fs (fsspec.filesystem): Filesystem for Azure protocol.
     """
 
-    def __init__(self, endpoint, bucket_name):
+    def __init__(self, endpoint, bucket_name, local_storage):
         """Initialize AzureBlobStorage with endpoint and bucket name.
 
         Args:
             endpoint (str): Azure endpoint of the hosted site.
             bucket_name (str): Name of the AzureBlobStorage account.
+            local_storage (Dict): Dictionary containing local storage
         """
         super().__init__()
         self._endpoint = endpoint
         self._bucket_name = bucket_name
+        self._local_storage = local_storage
         self._path = f"{_AZ_PROTOCOL}://$web"
         self._fs = fsspec.filesystem(_AZ_PROTOCOL, **{"account_name": bucket_name})
 

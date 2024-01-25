@@ -92,6 +92,10 @@ class BaseDeployer(abc.ABC):
                 "timestamp": datetime.utcnow().strftime("%d.%m.%Y %H:%M:%S"),
                 "version": str(parse(__version__)),
             }
+
+            if self._local_storage:
+                metadata["local_storage"] = self._local_storage
+
             with self._fs.open(f"{self._path}/{_METADATA_PATH}", "w") as metadata_file:
                 metadata_file.write(json.dumps(metadata))
         except Exception as exc:  # pragma: no cover

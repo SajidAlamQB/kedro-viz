@@ -19,19 +19,22 @@ class AWSDeployer(BaseDeployer):
     Attributes:
         _endpoint (str): AWS endpoint of the hosted site.
         _bucket_name (str): Name of the S3 bucket.
+        _local_storage (Dict): Dictionary containing local storage
         _path (str): S3 protocol with bucket name.
         _fs (fsspec.filesystem): Filesystem for S3 protocol.
     """
 
-    def __init__(self, endpoint, bucket_name):
+    def __init__(self, endpoint, bucket_name, local_storage):
         """Initialize S3Deployer with endpoint and bucket name.
 
         Args:
             endpoint (str): AWS endpoint of the hosted site.
             bucket_name (str): Name of the S3 bucket.
+            local_storage (Dict): Dictionary containing local storage
         """
         super().__init__()
         self._endpoint = endpoint
         self._bucket_name = bucket_name
+        self._local_storage = local_storage
         self._path = f"{_S3_PROTOCOL}://{bucket_name}"
         self._fs = fsspec.filesystem(_S3_PROTOCOL)
