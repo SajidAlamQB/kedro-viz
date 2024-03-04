@@ -36,7 +36,7 @@ setup(
     long_description_content_type="text/markdown",
     license="Apache Software License (Apache 2.0)",
     url="https://github.com/kedro-org/kedro-viz",
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=requires,
     keywords="pipelines, machine learning, data pipelines, data science, data engineering, visualisation",
     author="Kedro",
@@ -58,5 +58,8 @@ setup(
             "sphinx_rtd_theme==1.3.0",
             "myst-parser>=1.0,<2.1",
         ],
+        "aws": ["s3fs>=2021.4"],
+        "azure": ["adlfs>=2021.4"],
+        "gcp": ["gcsfs>=2021.4"],
     },
 )

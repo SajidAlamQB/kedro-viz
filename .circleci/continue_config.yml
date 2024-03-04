@@ -14,7 +14,7 @@ parameters:
     default: false
 
 orbs:
-  win: circleci/windows@2.4.1
+  win: circleci/windows@4.1.1
   node: circleci/node@5.0.3
 
 # No windows executor is listed here since windows builds use win/default and modify
@@ -73,15 +73,16 @@ commands:
             make build
 
   win_setup_python_env:
-    # Miniconda3 is pre-installed on the machine:
-    # https://circleci.com/docs/2.0/hello-world-windows/
     parameters:
       python_version:
         type: string
     steps:
       - run:
-          name: Initialize conda
-          command: conda init powershell
+          name: Install and initialize Miniconda
+          command: |
+            choco install miniconda3 -y
+            refreshenv
+            C:\tools\miniconda3\Scripts\conda init powershell
       - run:
           name: Create 'kedro-viz' conda environment
           command: conda create --name kedro-viz python=<<parameters.python_version>> -y
@@ -207,7 +208,7 @@ jobs:
   javascript_lint_and_tests:
     executor:
       name: docker
-      python_version: '3.8'
+      python_version: '3.9'
     steps:
       - checkout
       - setup_python_env
@@ -235,7 +236,7 @@ jobs:
   release_to_npm:
     executor:
       name: docker
-      python_version: '3.8'
+      python_version: '3.9'
     steps:
       - checkout
       - install_node_dependencies
@@ -250,7 +251,7 @@ jobs:
   release_to_pypi:
     executor:
       name: docker
-      python_version: '3.8'
+      python_version: '3.9'
     steps:
       - setup
       - run:
@@ -266,7 +267,7 @@ jobs:
   deploy_demo:
     executor:
       name: docker
-      python_version: '3.8'
+      python_version: '3.9'
     steps:
       - checkout
       - setup_remote_docker
@@ -341,11 +342,11 @@ workflows:
       - e2e_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - win_e2e_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
           filters:
             branches:
               only:
@@ -354,11 +355,11 @@ workflows:
       - unit_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - win_unit_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
           filters:
             branches:
               only:
@@ -367,7 +368,7 @@ workflows:
       - lint:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - all_circleci_checks_succeeded:
           requires:
             - e2e_tests
@@ -393,21 +394,21 @@ workflows:
       - e2e_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - win_e2e_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - unit_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - win_unit_tests:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - lint:
           matrix:
             parameters:
-              python_version: ['3.8', '3.9', '3.10', '3.11']
+              python_version: ['3.9', '3.10', '3.11']
       - javascript_lint_and_tests
